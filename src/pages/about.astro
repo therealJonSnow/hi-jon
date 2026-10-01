@@ -1,0 +1,49 @@
+---
+import Base from '../layouts/Base.astro';
+import { feeds, type Category } from '../feeds.config';
+
+const categories = [...new Set(feeds.map((f) => f.category))] as Category[];
+---
+
+<Base title="About · hi jon">
+  <main class="container prose">
+    <h1>About</h1>
+
+    <p class="lede">
+      hi jon is a small, quiet reader for the writing I actually want to keep up with: frontend,
+      tooling and AI, gathered into one feed.
+    </p>
+
+    <p>
+      Good writing about the web is spread across newsletters, blogs and changelogs. Some land in an
+      inbox that is already too full. Some only exist as a link on social media, and some are easy to
+      forget entirely. I wanted one place to look each morning that didn't come with an algorithm,
+      notifications or a reason to keep scrolling once I'd caught up.
+    </p>
+
+    <p>
+      So this is deliberately simple. Every source is fetched directly from its RSS or Atom feed,
+      merged into a single list and shown newest first. Nothing is ranked, recommended or hidden. Items
+      you've opened fade back so new ones stand out, and that state lives only in your browser. There
+      are no accounts and no tracking.
+    </p>
+
+    <h2>What's in it</h2>
+    {categories.map((category) => (
+      <p>
+        <strong>{category}:</strong>{' '}
+        {feeds
+          .filter((f) => f.category === category)
+          .map((f) => f.name)
+          .join(', ')}
+      </p>
+    ))}
+
+    <h2>How it works</h2>
+    <p>
+      The page is rendered on request and cached at the edge for about fifteen minutes, then quietly
+      refreshed in the background. If a feed is slow or down, it's skipped rather than holding up the
+      rest.
+    </p>
+  </main>
+</Base>

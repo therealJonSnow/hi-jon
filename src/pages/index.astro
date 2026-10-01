@@ -1,101 +1,296 @@
 ---
+import Base from '../layouts/Base.astro';
 import { CACHE_CONTROL, getAllItems } from '../lib/feeds';
 
-const { items, sources, fetchedAt } = await getAllItems();
+// Items are revealed in batches of this size as you scroll
+const BATCH_SIZE = 25;
+
+const { items, sources } = await getAllItems();
 const failed = sources.filter((s) => !s.ok);
 
 Astro.response.headers.set('Cache-Control', CACHE_CONTROL);
 
+// Server-rendered fallback. The client swaps this for a relative time ("3h ago").
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
+  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Feeds</title>
-  </head>
-  <body>
-    <header>
-      <h1>Feeds</h1>
-      <p>
-        {items.length} items from {sources.length - failed.length}/{sources.length} feeds.
-        Fetched <time datetime={fetchedAt}>{formatDate(fetchedAt)} UTC</time>.
-      </p>
-      {failed.length > 0 && (
-        <details>
-          <summary>{failed.length} feed(s) failed</summary>
-          <ul>
-            {failed.map((s) => <li>{s.name}: {s.error}</li>)}
-          </ul>
-        </details>
-      )}
-    </header>
+<Base>
+  <main class="container">
+    <h1 class="visually-hidden">Latest from all feeds</h1>
 
-    <main>
-      <ul id="items">
-        {items.map((item) => (
-          <li data-id={item.id} data-category={item.category}>
-            <a href={item.link} target="_blank" rel="noopener noreferrer">{item.title}</a>
-            <span>{item.source}</span>
-            {item.date && <time datetime={item.date}>{formatDate(item.date)}</time>}
-            <button type="button" data-toggle-read>Mark read</button>
+    {items.length === 0 ? (
+      <p class="empty">Nothing to read right now. Check back soon.</p>
+    ) : (
+      <ol class="feed" id="feed" data-batch={BATCH_SIZE}>
+        {items.map((item, i) => (
+          <li class="item" data-id={item.id} data-category={item.category} hidden={i >= BATCH_SIZE}>
+            <button class="item__mark" type="button" aria-label="Mark as read" aria-pressed="false"></button>
+            <div class="item__meta">
+              <span class="item__source">{item.source}</span>
+              {item.date && (
+                <>
+                  <span class="item__sep" aria-hidden="true">/</span>
+                  <time class="item__time" datetime={item.date}>{formatDate(item.date)}</time>
+                </>
+              )}
+            </div>
+            <a class="item__title" href={item.link} target="_blank" rel="noopener noreferrer">{item.title}</a>
           </li>
         ))}
-      </ul>
-    </main>
+      </ol>
+    )}
 
-    <script>
-      const STORAGE_KEY = 'read-items';
+    <div id="sentinel" aria-hidden="true"></div>
+    <p class="end" id="end" hidden>You're all caught up.</p>
 
-      function loadRead(): Set<string> {
-        try {
-          return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'));
-        } catch {
-          return new Set();
-        }
+    <noscript><style>.item[hidden] { display: grid; }</style></noscript>
+  </main>
+
+  <footer class="site-footer container">
+    {sources.length - failed.length} of {sources.length} feeds loaded
+    {failed.length > 0 && (
+      <details>
+        <summary>Unavailable right now</summary>
+        <ul>{failed.map((s) => <li>{s.name}: {s.error}</li>)}</ul>
+      </details>
+    )}
+  </footer>
+</Base>
+
+<style>
+  .feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .item {
+    position: relative;
+    display: grid;
+    gap: var(--space-2xs);
+    padding-block: var(--space-m);
+    padding-right: var(--space-l); /* room for the unread dot */
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .item[hidden] {
+    display: none;
+  }
+
+  .item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-xs);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .item__source {
+    color: var(--accent-text);
+    font-weight: 600;
+  }
+
+  .item__sep {
+    color: var(--text-faint);
+  }
+
+  .item__time {
+    color: var(--text-muted);
+  }
+
+  .item__title {
+    font-size: var(--step-1);
+    font-weight: 560;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.012em;
+    text-decoration: none;
+    text-wrap: pretty;
+    transition: color 0.15s;
+  }
+
+  .item__title:hover {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* Unread dot: filled coral when unread, a faint ring once read */
+  .item__mark {
+    position: absolute;
+    top: calc(var(--space-m) + 0.1rem);
+    right: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .item__mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .item[data-read] .item__mark::after {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--text-faint);
+  }
+
+  .item[data-read] .item__title {
+    color: var(--text-muted);
+    font-weight: 450;
+  }
+
+  .item[data-read] .item__source {
+    color: var(--text-muted);
+  }
+
+  .empty,
+  .end {
+    padding-block: var(--space-xl);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    color: var(--text-muted);
+  }
+
+  .site-footer details {
+    margin-top: var(--space-xs);
+  }
+
+  .site-footer summary {
+    cursor: pointer;
+  }
+
+  .site-footer ul {
+    padding-left: var(--space-m);
+  }
+</style>
+
+<script>
+  const feed = document.getElementById('feed');
+
+  if (feed) {
+    // ---- Read state (localStorage) ----
+    const STORAGE_KEY = 'read-items';
+
+    const loadRead = (): Set<string> => {
+      try {
+        return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'));
+      } catch {
+        return new Set();
       }
+    };
 
-      function saveRead(ids: Set<string>) {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
-        } catch {}
+    const read = loadRead();
+
+    const save = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...read]));
+      } catch {}
+    };
+
+    const render = (li: HTMLElement) => {
+      const isRead = read.has(li.dataset.id!);
+      li.toggleAttribute('data-read', isRead);
+      const button = li.querySelector<HTMLButtonElement>('.item__mark')!;
+      button.setAttribute('aria-pressed', String(isRead));
+      button.setAttribute('aria-label', isRead ? 'Mark as unread' : 'Mark as read');
+    };
+
+    const setRead = (li: HTMLElement, isRead: boolean) => {
+      isRead ? read.add(li.dataset.id!) : read.delete(li.dataset.id!);
+      save();
+      render(li);
+    };
+
+    // ---- Relative times ----
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'narrow' });
+    const absolute = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    const shortDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+
+    const relative = (date: Date) => {
+      const minutes = Math.round((date.getTime() - Date.now()) / 60000);
+      if (Math.abs(minutes) < 1) return 'just now';
+      if (Math.abs(minutes) < 60) return rtf.format(minutes, 'minute');
+      const hours = Math.round(minutes / 60);
+      if (Math.abs(hours) < 24) return rtf.format(hours, 'hour');
+      const days = Math.round(hours / 24);
+      if (Math.abs(days) < 7) return rtf.format(days, 'day');
+      return shortDate.format(date);
+    };
+
+    const setupItem = (li: HTMLElement) => {
+      render(li);
+      const time = li.querySelector('time');
+      if (time) {
+        const date = new Date(time.dateTime);
+        time.textContent = relative(date);
+        time.title = absolute.format(date);
       }
+    };
 
-      const read = loadRead();
+    feed.querySelectorAll<HTMLElement>('.item:not([hidden])').forEach(setupItem);
 
-      function render(li: HTMLElement) {
-        const isRead = read.has(li.dataset.id!);
-        li.toggleAttribute('data-read', isRead);
-        li.querySelector('[data-toggle-read]')!.textContent = isRead ? 'Mark unread' : 'Mark read';
-      }
+    feed.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const li = target.closest<HTMLElement>('.item');
+      if (!li) return;
+      if (target.closest('.item__mark')) setRead(li, !read.has(li.dataset.id!));
+      else if (target.closest('a')) setRead(li, true);
+    });
 
-      function setRead(li: HTMLElement, isRead: boolean) {
-        const id = li.dataset.id!;
-        isRead ? read.add(id) : read.delete(id);
-        saveRead(read);
-        render(li);
-      }
+    // Middle-click opens a link without firing "click"
+    feed.addEventListener('auxclick', (event) => {
+      const target = event.target as HTMLElement;
+      const li = target.closest<HTMLElement>('.item');
+      if (li && target.closest('a')) setRead(li, true);
+    });
 
-      const list = document.getElementById('items')!;
-      list.querySelectorAll<HTMLElement>('li[data-id]').forEach(render);
+    // ---- Infinite scroll: reveal the next batch as the end comes into view ----
+    const batch = Number(feed.dataset.batch);
+    const sentinel = document.getElementById('sentinel')!;
+    const end = document.getElementById('end')!;
 
-      list.addEventListener('click', (event) => {
-        const target = event.target as HTMLElement;
-        const li = target.closest<HTMLElement>('li[data-id]');
-        if (!li) return;
-        if (target.closest('[data-toggle-read]')) setRead(li, !read.has(li.dataset.id!));
-        else if (target.closest('a')) setRead(li, true);
+    const revealNext = () => {
+      const next = [...feed.querySelectorAll<HTMLElement>('.item[hidden]')].slice(0, batch);
+      next.forEach((li) => {
+        li.hidden = false;
+        setupItem(li);
       });
+      if (!feed.querySelector('.item[hidden]')) {
+        observer.disconnect();
+        end.hidden = false;
+        return;
+      }
+      // Re-observe so a sentinel that is still on screen triggers another batch
+      observer.unobserve(sentinel);
+      observer.observe(sentinel);
+    };
 
-      // Middle-click opens a link without firing "click"
-      list.addEventListener('auxclick', (event) => {
-        const target = event.target as HTMLElement;
-        const li = target.closest<HTMLElement>('li[data-id]');
-        if (li && target.closest('a')) setRead(li, true);
-      });
-    </script>
-  </body>
-</html>
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) revealNext();
+      },
+      { rootMargin: '0px 0px 800px 0px' },
+    );
+
+    if (feed.querySelector('.item[hidden]')) observer.observe(sentinel);
+    else end.hidden = false;
+  }
+</script>

@@ -1,0 +1,287 @@
+/* ---------------------------------------------------------------------------
+   Design tokens. Edit these to retheme the site.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Colour */
+  --accent: #fe6945; /* coral from the logo */
+  --bg: #f8f3ea; /* cream; keep in sync with scripts/generate-icons.mjs */
+  --text: #24201d; /* off-black from the logo */
+
+  /* Derived colours. These follow the three values above automatically. */
+  --text-muted: color-mix(in oklab, var(--text) 64%, transparent);
+  --text-faint: color-mix(in oklab, var(--text) 40%, transparent);
+  /* Pure coral is too light for small text on cream, so labels use a deeper mix */
+  --accent-text: color-mix(in oklab, var(--accent) 65%, var(--text));
+  --accent-soft: color-mix(in oklab, var(--accent) 16%, transparent);
+  --rule: color-mix(in oklab, var(--text) 10%, transparent);
+
+  /* Type */
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Fluid type scale: ratio ~1.2 on small screens, ~1.25 on large */
+  --step--2: clamp(0.72rem, 0.7rem + 0.08vw, 0.78rem);
+  --step--1: clamp(0.83rem, 0.81rem + 0.1vw, 0.9rem);
+  --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.125rem);
+  --step-1: clamp(1.2rem, 1.15rem + 0.25vw, 1.4rem);
+  --step-2: clamp(1.44rem, 1.35rem + 0.45vw, 1.76rem);
+  --step-3: clamp(1.73rem, 1.58rem + 0.75vw, 2.2rem);
+
+  --leading-tight: 1.3;
+  --leading: 1.6;
+
+  /* Space */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-s: 0.75rem;
+  --space-m: 1.25rem;
+  --space-l: 2rem;
+  --space-xl: 3.5rem;
+
+  /* Layout */
+  --measure: 40rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+  --edge-size: 5.5rem; /* height of the blurred top/bottom edges */
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: var(--leading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: var(--leading-tight);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   Layout
+   --------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: calc(var(--measure) + var(--gutter) * 2);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-m);
+  padding-block: var(--space-l) var(--space-m);
+}
+
+.site-header .logo {
+  display: block;
+  line-height: 0;
+}
+
+.site-header .logo img {
+  height: 2rem;
+  width: auto;
+}
+
+.site-nav {
+  display: flex;
+  gap: var(--space-m);
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+}
+
+.site-nav a {
+  text-decoration: none;
+  color: var(--text-muted);
+  padding-block: var(--space-2xs);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+}
+
+.site-nav a[aria-current='page'] {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+main {
+  padding-bottom: var(--edge-size);
+}
+
+.site-footer {
+  padding-block: var(--space-l) calc(var(--edge-size) + var(--space-m));
+  font-family: var(--font-mono);
+  font-size: var(--step--2);
+  color: var(--text-faint);
+}
+
+/* ---------------------------------------------------------------------------
+   Blurred page edges. Several stacked layers with increasing blur give a
+   gradual "progressive" blur rather than a hard line.
+   --------------------------------------------------------------------------- */
+.edge {
+  position: fixed;
+  inset-inline: 0;
+  height: var(--edge-size);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.edge--top {
+  top: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+html[data-scrolled] .edge--top {
+  opacity: 1;
+}
+
+.edge--bottom {
+  bottom: 0;
+}
+
+.edge > span {
+  position: absolute;
+  inset: 0;
+}
+
+/* Bottom edge: blur grows towards the bottom of the screen */
+.edge--bottom > span:nth-child(1) {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  mask-image: linear-gradient(to bottom, transparent, #000 35%);
+}
+.edge--bottom > span:nth-child(2) {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(to bottom, transparent 30%, #000 70%);
+}
+.edge--bottom > span:nth-child(3) {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to bottom, transparent 60%, #000);
+}
+.edge--bottom > span:nth-child(4) {
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--bg) 85%, transparent));
+}
+
+/* Top edge: the same, mirrored */
+.edge--top > span:nth-child(1) {
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  mask-image: linear-gradient(to top, transparent, #000 35%);
+}
+.edge--top > span:nth-child(2) {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(to top, transparent 30%, #000 70%);
+}
+.edge--top > span:nth-child(3) {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to top, transparent 60%, #000);
+}
+.edge--top > span:nth-child(4) {
+  background: linear-gradient(to top, transparent, color-mix(in oklab, var(--bg) 85%, transparent));
+}
+
+/* ---------------------------------------------------------------------------
+   Prose (about page)
+   --------------------------------------------------------------------------- */
+.prose {
+  padding-top: var(--space-l);
+}
+
+.prose h1 {
+  font-size: var(--step-3);
+  margin: 0 0 var(--space-m);
+}
+
+.prose h2 {
+  font-size: var(--step-1);
+  margin: var(--space-xl) 0 var(--space-s);
+}
+
+.prose p,
+.prose li {
+  color: color-mix(in oklab, var(--text) 85%, transparent);
+}
+
+.prose a {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.prose a:hover {
+  color: var(--accent-text);
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--text) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}

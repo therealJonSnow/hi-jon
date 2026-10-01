@@ -1,0 +1,62 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/jetbrains-mono';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'hi jon',
+  description = 'A calm, single feed of frontend, tooling and AI writing.',
+} = Astro.props;
+
+const nav = [
+  { href: '/', label: 'Feed' },
+  { href: '/about', label: 'About' },
+];
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f8f3ea" />
+
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  </head>
+  <body>
+    <div class="edge edge--top" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+    <header class="site-header container">
+      <a class="logo" href="/" aria-label="hi jon, home">
+        <img src="/logo.webp" alt="" width="820" height="316" />
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        {nav.map((item) => (
+          <a href={item.href} aria-current={path === item.href ? 'page' : undefined}>{item.label}</a>
+        ))}
+      </nav>
+    </header>
+
+    <slot />
+
+    <div class="edge edge--bottom" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+    <script>
+      // Show the top blur only once content has scrolled under it
+      const update = () => document.documentElement.toggleAttribute('data-scrolled', window.scrollY > 8);
+      update();
+      window.addEventListener('scroll', update, { passive: true });
+    </script>
+  </body>
+</html>

@@ -4,7 +4,10 @@ A personal RSS reader built with Astro in server mode. It deploys to Vercel.
 
 - `src/feeds.config.ts`: the list of feeds. Add or remove entries here.
 - `src/lib/feeds.ts`: fetches every feed in parallel with a 5s timeout each, then parses (RSS, Atom, RDF and JSON Feed, via `feedsmith`), merges and sorts newest first.
-- `src/pages/index.astro`: the page. Read/unread state is kept in `localStorage`.
+- `src/pages/index.astro`: the feed, with infinite scroll. Read/unread state is kept in `localStorage`.
+- `src/pages/about.astro`: the about page.
+- `src/styles/global.css`: design tokens (`--accent`, `--bg`, `--text`, the `--step-*` type scale, spacing) and global styles.
+- `scripts/generate-icons.mjs`: builds the favicons and header logo in `public/` from `assets/logo.webp`. Run it with `npm run icons`.
 - `src/pages/api/feeds.json.ts`: the same data as JSON, plus the status of each feed. Use it to find broken feed URLs.
 
 Responses are sent with `Cache-Control: s-maxage=900, stale-while-revalidate=86400`. Vercel's CDN serves the cached copy for 15 minutes, then refreshes it in the background.
