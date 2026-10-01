@@ -1,0 +1,101 @@
+---
+import { CACHE_CONTROL, getAllItems } from '../lib/feeds';
+
+const { items, sources, fetchedAt } = await getAllItems();
+const failed = sources.filter((s) => !s.ok);
+
+Astro.response.headers.set('Cache-Control', CACHE_CONTROL);
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' });
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Feeds</title>
+  </head>
+  <body>
+    <header>
+      <h1>Feeds</h1>
+      <p>
+        {items.length} items from {sources.length - failed.length}/{sources.length} feeds.
+        Fetched <time datetime={fetchedAt}>{formatDate(fetchedAt)} UTC</time>.
+      </p>
+      {failed.length > 0 && (
+        <details>
+          <summary>{failed.length} feed(s) failed</summary>
+          <ul>
+            {failed.map((s) => <li>{s.name}: {s.error}</li>)}
+          </ul>
+        </details>
+      )}
+    </header>
+
+    <main>
+      <ul id="items">
+        {items.map((item) => (
+          <li data-id={item.id} data-category={item.category}>
+            <a href={item.link} target="_blank" rel="noopener noreferrer">{item.title}</a>
+            <span>{item.source}</span>
+            {item.date && <time datetime={item.date}>{formatDate(item.date)}</time>}
+            <button type="button" data-toggle-read>Mark read</button>
+          </li>
+        ))}
+      </ul>
+    </main>
+
+    <script>
+      const STORAGE_KEY = 'read-items';
+
+      function loadRead(): Set<string> {
+        try {
+          return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]'));
+        } catch {
+          return new Set();
+        }
+      }
+
+      function saveRead(ids: Set<string>) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+        } catch {}
+      }
+
+      const read = loadRead();
+
+      function render(li: HTMLElement) {
+        const isRead = read.has(li.dataset.id!);
+        li.toggleAttribute('data-read', isRead);
+        li.querySelector('[data-toggle-read]')!.textContent = isRead ? 'Mark unread' : 'Mark read';
+      }
+
+      function setRead(li: HTMLElement, isRead: boolean) {
+        const id = li.dataset.id!;
+        isRead ? read.add(id) : read.delete(id);
+        saveRead(read);
+        render(li);
+      }
+
+      const list = document.getElementById('items')!;
+      list.querySelectorAll<HTMLElement>('li[data-id]').forEach(render);
+
+      list.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        const li = target.closest<HTMLElement>('li[data-id]');
+        if (!li) return;
+        if (target.closest('[data-toggle-read]')) setRead(li, !read.has(li.dataset.id!));
+        else if (target.closest('a')) setRead(li, true);
+      });
+
+      // Middle-click opens a link without firing "click"
+      list.addEventListener('auxclick', (event) => {
+        const target = event.target as HTMLElement;
+        const li = target.closest<HTMLElement>('li[data-id]');
+        if (li && target.closest('a')) setRead(li, true);
+      });
+    </script>
+  </body>
+</html>
