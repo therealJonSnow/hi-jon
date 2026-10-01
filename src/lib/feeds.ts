@@ -2,7 +2,7 @@ import { parseFeed } from 'feedsmith';
 import { feeds, type Category, type FeedSource } from '../feeds.config';
 
 const TIMEOUT_MS = 5000;
-const MAX_ITEMS_PER_FEED = 30;
+const DEFAULT_ITEMS_PER_FEED = 20;
 
 // Some hosts (Substack, Cloudflare-fronted sites) reject requests without a UA
 const USER_AGENT = 'Mozilla/5.0 (compatible; hi-jon-rss-reader/0.1)';
@@ -104,7 +104,7 @@ async function fetchFeed(source: FeedSource): Promise<FeedItem[]> {
       category: source.category,
     });
   }
-  return items.slice(0, MAX_ITEMS_PER_FEED);
+  return items.slice(0, source.limit ?? DEFAULT_ITEMS_PER_FEED);
 }
 
 // Newest first; undated items go last

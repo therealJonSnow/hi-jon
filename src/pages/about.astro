@@ -11,7 +11,7 @@ const categories = [...new Set(feeds.map((f) => f.category))] as Category[];
 
     <p class="lede">
       hi jon is a small, quiet reader for the writing I actually want to keep up with: frontend,
-      tooling and AI, gathered into one feed.
+      CSS and the web platform, mostly from the people who write it themselves.
     </p>
 
     <p>
@@ -23,7 +23,8 @@ const categories = [...new Set(feeds.map((f) => f.category))] as Category[];
 
     <p>
       So this is deliberately simple. Every source is fetched directly from its RSS or Atom feed,
-      merged into a single list and shown newest first. Nothing is ranked, recommended or hidden. Items
+      merged into a single list and shown newest first. Busier sources are capped so they can't drown
+      out the personal blogs. Nothing is ranked or recommended. Items
       you've opened fade back so new ones stand out, and that state lives only in your browser. There
       are no accounts and no tracking.
     </p>
